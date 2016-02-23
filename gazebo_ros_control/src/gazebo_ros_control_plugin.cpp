@@ -201,15 +201,17 @@ void GazeboRosControlPlugin::Load(gazebo::physics::ModelPtr parent, sdf::Element
 // Called by the world update start event
 void GazeboRosControlPlugin::Update()
 {
-  // Get the simulation time and period
+// Get the simulation time and period
   gazebo::common::Time gz_time_now = parent_model_->GetWorld()->GetSimTime();
   ros::Time sim_time_ros(gz_time_now.sec, gz_time_now.nsec);
   ros::Duration sim_period = sim_time_ros - last_update_sim_time_ros_;
 
   robot_hw_sim_->eStopActive(e_stop_active_);
 
+  static unsigned int ratio = 5;
+  ros::Duration motor_period_;
   // Check if we should update the controllers
-  if(sim_period >= control_period_) {
+  if(sim_period >= motor_period_.fromNSec(control_period_.toNSec()/ratio)) {
     // Store this simulation time
     last_update_sim_time_ros_ = sim_time_ros;
 
@@ -235,7 +237,17 @@ void GazeboRosControlPlugin::Update()
         reset_ctrlrs = false;
       }
     }
-    controller_manager_->update(sim_time_ros, sim_period, reset_ctrlrs);
+    static unsigned int task_counter = 0;
+    if(task_counter == 0){
+      controller_manager_->update(sim_time_ros,
+          sim_period.fromNSec(sim_period.toNSec()*ratio), reset_ctrlrs);
+      task_counter++;
+    }else if(task_counter >= (ratio-1))
+    {
+      task_counter = 0;
+    }else{
+      task_counter++;
+    }
   }
 
   // Update the gazebo model with the result of the controller
