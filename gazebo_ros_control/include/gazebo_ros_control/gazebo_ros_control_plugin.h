@@ -121,6 +121,9 @@ protected:
   ros::Time last_update_sim_time_ros_;
   ros::Time last_write_sim_time_ros_;
 
+  //Motor/Task servo ratio
+  int control_ratio_;
+
   // e_stop_active_ is true if the emergency stop is active.
   bool e_stop_active_, last_e_stop_active_;
   ros::Subscriber e_stop_sub_;  // Emergency stop subscriber
