@@ -137,6 +137,30 @@ void GazeboRosControlPlugin::Load(gazebo::physics::ModelPtr parent, sdf::Element
       << control_period_);
   }
 
+    // Decide the plugin control period
+  if(sdf_->HasElement("controlRatio"))
+  {
+    control_ratio_ = sdf_->Get<int>("controlRatio");
+    if( control_ratio_ <= 1 )
+    {
+      ROS_ERROR_STREAM_NAMED("gazebo_ros_control","Desired controller ratio ("<<control_ratio_
+        <<" s) is less than 1, defaulting to 1.");
+      control_ratio_ = 1;
+    }
+    else if( control_ratio_ >= 10 )
+    {
+      ROS_WARN_STREAM_NAMED("gazebo_ros_control","Desired controller ratio ("<<control_ratio_
+        <<" s) is greater than than 10, defaulting to 10.");
+      control_ratio_ = 10;
+    }  
+  }
+  else
+  {
+    control_ratio_ = 5;
+    ROS_DEBUG_STREAM_NAMED("gazebo_ros_control","Control ratio not found in URDF/SDF, defaulting to ratio of "
+      << control_ratio_);
+  }
+
   // Get parameters/settings for controllers from ROS param server
   model_nh_ = ros::NodeHandle(robot_namespace_);
 
@@ -208,10 +232,9 @@ void GazeboRosControlPlugin::Update()
 
   robot_hw_sim_->eStopActive(e_stop_active_);
 
-  static unsigned int ratio = 5;
   ros::Duration motor_period_;
   // Check if we should update the controllers
-  if(sim_period >= motor_period_.fromNSec(control_period_.toNSec()/ratio)) {
+  if(sim_period >= motor_period_.fromNSec(control_period_.toNSec()/control_ratio_)) {
     // Store this simulation time
     last_update_sim_time_ros_ = sim_time_ros;
 
@@ -240,9 +263,9 @@ void GazeboRosControlPlugin::Update()
     static unsigned int task_counter = 0;
     if(task_counter == 0){
       controller_manager_->update(sim_time_ros,
-          sim_period.fromNSec(sim_period.toNSec()*ratio), reset_ctrlrs);
+          sim_period.fromNSec(sim_period.toNSec()*control_ratio_), reset_ctrlrs);
       task_counter++;
-    }else if(task_counter >= (ratio-1))
+    }else if(task_counter >= (control_ratio_-1))
     {
       task_counter = 0;
     }else{
