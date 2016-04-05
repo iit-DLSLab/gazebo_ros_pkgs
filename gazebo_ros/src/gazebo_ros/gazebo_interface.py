@@ -9,6 +9,7 @@ import time
 from gazebo_msgs.msg import *
 from gazebo_msgs.srv import *
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Wrench
+from std_srvs.srv import Empty
 
 
 def spawn_sdf_model_client(model_name, model_xml, robot_namespace, initial_pose, reference_frame, gazebo_namespace):
@@ -47,6 +48,20 @@ def set_model_configuration_client(model_name, model_param_name, joint_names, jo
       rospy.loginfo("Set model configuration status: %s"%resp.status_message)
 
       return resp.success
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
+
+def unpause_physics(gazebo_namespace):
+    rospy.loginfo("Waiting for service %s/unpause_physics"%gazebo_namespace)
+    rospy.wait_for_service(gazebo_namespace+'/unpause_physics')
+    rospy.loginfo("temporary hack to **fix** the -J joint position option (issue #93), sleeping for 1 second to avoid race condition.");
+    time.sleep(1)
+    try:
+      unpause_physics = rospy.ServiceProxy(gazebo_namespace+'/unpause_physics', Empty)
+      rospy.loginfo("Calling service %s/unpause_physics"%gazebo_namespace)
+      resp = unpause_physics()
+
+      return
     except rospy.ServiceException, e:
       print "Service call failed: %s"%e
 
