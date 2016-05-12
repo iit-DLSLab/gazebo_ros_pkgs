@@ -118,6 +118,7 @@ protected:
 
   // Timing
   ros::Duration control_period_;
+  ros::Duration motor_period_;
   ros::Time last_update_sim_time_ros_;
   ros::Time last_write_sim_time_ros_;
 
